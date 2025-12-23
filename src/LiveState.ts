@@ -14,6 +14,13 @@ export type LiveStateConfig = {
 
   /** the options passed to the phoenix socket */
   socketOptions?: object
+
+  /**
+   * An existing Phoenix Socket instance to use instead of creating a new one.
+   * When provided, LiveState will use this socket and will NOT disconnect it
+   * when disconnect() is called (since it's shared).
+   */
+  socket?: Socket
 }
 
 export type LiveStateError = {
@@ -83,13 +90,23 @@ export class LiveState implements EventTarget {
   stateVersion: number;
   connected: boolean = false;
   eventTarget: EventTarget;
+  private ownsSocket: boolean;
 
   constructor(config: LiveStateConfig) {
     this.config = config;
-    this.socket = new Socket(
-      this.config.url,
-      this.config.socketOptions || { logger: ((kind, msg, data) => { console.debug(`${kind}: ${msg}`, data) }) }
-    );
+
+    // Use provided socket or create a new one
+    if (config.socket) {
+      this.socket = config.socket;
+      this.ownsSocket = false;
+    } else {
+      this.socket = new Socket(
+        this.config.url,
+        this.config.socketOptions || { logger: ((kind, msg, data) => { console.debug(`${kind}: ${msg}`, data) }) }
+      );
+      this.ownsSocket = true;
+    }
+
     this.channel = this.socket.channel(this.config.topic, this.config.params);
     this.eventTarget = new EventTarget();
   }
@@ -98,7 +115,10 @@ export class LiveState implements EventTarget {
   connect() {
     if (!this.connected) {
       this.socket.onError((e) => this.emitError('socket error', e));
-      this.socket.connect();
+      // Only connect the socket if we own it (not shared)
+      if (this.ownsSocket) {
+        this.socket.connect();
+      }
       this.channel.onError((e) => this.emitError('channel error', e));
       this.channel.join().receive("ok", (resp) => {
         console.debug('channel joined', resp);
@@ -112,10 +132,13 @@ export class LiveState implements EventTarget {
     }
   }
 
-  /** leave channel and disconnect from socket */
+  /** leave channel and disconnect from socket (only if we own the socket) */
   disconnect() {
     this.channel && this.channel.leave();
-    this.socket.disconnect();
+    // Only disconnect the socket if we own it (not shared)
+    if (this.ownsSocket) {
+      this.socket.disconnect();
+    }
     this.connected = false;
   }
 
