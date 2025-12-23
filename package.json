@@ -2,9 +2,9 @@
   "name": "phx-live-state",
   "version": "0.12.1",
   "description": "Front end library for live_state",
-  "main": "build/src/index.js",
-  "module": "build/src/index.js",
-  "types": "build/src/index.d.ts",
+  "main": "build/index.js",
+  "module": "build/index.js",
+  "types": "build/index.d.ts",
   "scripts": {
     "test": "web-test-runner \"build/**/*test.js\" --node-resolve",
     "build": "tsc",
@@ -15,7 +15,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/launchscout/phx-live-state"
+    "url": "https://github.com/liorix/phx-live-state"
   },
   "homepage": "https://launchscout.github.io/phx-live-state/",
   "author": "Chris Nelson",
